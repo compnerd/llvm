@@ -1,5 +1,7 @@
-@ RUN: llvm-mc -triple armv7-linux-eabi -filetype obj -o - %s \
-@ RUN:   | llvm-readobj -s -sd -sr | FileCheck %s
+@ RUN: llvm-mc -triple armv7-eabi -filetype obj %s | llvm-readobj -u \
+@ RUN:   | FileCheck %s -check-prefix CHECK-UNW
+@ RUN: llvm-mc -triple armv7-eabi -filetype obj %s | llvm-readobj -s -sr \
+@ RUN:   | FileCheck %s -check-prefix CHECK-REL
 
 	.syntax unified
 	.thumb
@@ -16,20 +18,27 @@ pr0:
 	bx lr
 	.fnend
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.exidx.pr0
-@ CHECK:   SectionData (
-@ CHECK:     0000: 00000000 B0B0B080
-@ CHECK:   )
-@ CHECK: }
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   SectionName: .ARM.exidx.pr0
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     FunctionAddress: 0x0
+@ CHECK-UNW:     Model: Compact (Inline)
+@ CHECK-UNW:     PersonalityIndex: 0
+@ CHECK-UNW:     Opcodes [
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:     ]
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
-@ CHECK: Section {
-@ CHECK:   Name: .rel.ARM.exidx.pr0
-@ CHECK:   Relocations [
-@ CHECK:     0x0 R_ARM_PREL31 .pr0 0x0
-@ CHECK:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr0 0x0
-@ CHECK:   ]
-@ CHECK: }
+@ CHECK-REL: Section {
+@ CHECK-REL:   Name: .rel.ARM.exidx.pr0
+@ CHECK-REL:   Relocations [
+@ CHECK-REL:     0x0 R_ARM_PREL31 .pr0 0x0
+@ CHECK-REL:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr0 0x0
+@ CHECK-REL:   ]
+@ CHECK-REL: }
 
 	.section .pr0.nontrivial
 
@@ -45,20 +54,27 @@ pr0_nontrivial:
 	bx lr
 	.fnend
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.exidx.pr0.nontrivial
-@ CHECK:   SectionData (
-@ CHECK:     0000: 00000000 B0B00380
-@ CHECK:   )
-@ CHECK: }
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   SectionName: .ARM.exidx.pr0.nontrivial
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     FunctionAddress: 0x0
+@ CHECK-UNW:     Model: Compact (Inline)
+@ CHECK-UNW:     PersonalityIndex: 0
+@ CHECK-UNW:     Opcodes [
+@ CHECK-UNW:       0x03      ; vsp = vsp + 16
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:     ]
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
-@ CHECK: Section {
-@ CHECK:   Name: .rel.ARM.exidx.pr0.nontrivial
-@ CHECK:   Relocations [
-@ CHECK:     0x0 R_ARM_PREL31 .pr0.nontrivial 0x0
-@ CHECK:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr0 0x0
-@ CHECK:   ]
-@ CHECK: }
+@ CHECK-REL: Section {
+@ CHECK-REL:   Name: .rel.ARM.exidx.pr0.nontrivial
+@ CHECK-REL:   Relocations [
+@ CHECK-REL:     0x0 R_ARM_PREL31 .pr0.nontrivial 0x0
+@ CHECK-REL:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr0 0x0
+@ CHECK-REL:   ]
+@ CHECK-REL: }
 
 	.section .pr1
 
@@ -71,28 +87,29 @@ pr1:
 	bx lr
 	.fnend
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.extab.pr1
-@ CHECK:   SectionData (
-@ CHECK:     0000: B0B00081 00000000
-@ CHECK:   )
-@ CHECK: }
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   SectionName: .ARM.exidx.pr1
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     FunctionAddress: 0x0
+@ CHECK-UNW:     ExceptionHandlingTable: .ARM.extab.pr1
+@ CHECK-UNW:     TableEntryOffset: 0x0
+@ CHECK-UNW:     Model: Compact
+@ CHECK-UNW:     PersonalityIndex: 1
+@ CHECK-UNW:     Opcodes [
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:     ]
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.exidx.pr1
-@ CHECK:   SectionData (
-@ CHECK:     0000: 00000000 00000000
-@ CHECK:   )
-@ CHECK: }
-
-@ CHECK: Section {
-@ CHECK:   Name: .rel.ARM.exidx.pr1
-@ CHECK:   Relocations [
-@ CHECK:     0x0 R_ARM_PREL31 .pr1 0x0
-@ CHECK:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr1 0x0
-@ CHECK:     0x4 R_ARM_PREL31 .ARM.extab.pr1 0x0
-@ CHECK:   ]
-@ CHECK: }
+@ CHECK-REL: Section {
+@ CHECK-REL:   Name: .rel.ARM.exidx.pr1
+@ CHECK-REL:   Relocations [
+@ CHECK-REL:     0x0 R_ARM_PREL31 .pr1 0x0
+@ CHECK-REL:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr1 0x0
+@ CHECK-REL:     0x4 R_ARM_PREL31 .ARM.extab.pr1 0x0
+@ CHECK-REL:   ]
+@ CHECK-REL: }
 
 	.section .pr1.nontrivial
 
@@ -108,28 +125,29 @@ pr1_nontrivial:
 	bx lr
 	.fnend
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.extab.pr1.nontrivial
-@ CHECK:   SectionData (
-@ CHECK:     0000: B0030081 00000000
-@ CHECK:   )
-@ CHECK: }
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   SectionName: .ARM.exidx.pr1.nontrivial
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     FunctionAddress: 0x0
+@ CHECK-UNW:     ExceptionHandlingTable: .ARM.extab.pr1.nontrivial
+@ CHECK-UNW:     TableEntryOffset: 0x0
+@ CHECK-UNW:     Model: Compact
+@ CHECK-UNW:     PersonalityIndex: 1
+@ CHECK-UNW:     Opcodes [
+@ CHECK-UNW:       0x03      ; vsp = vsp + 16
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:     ]
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.exidx.pr1.nontrivial
-@ CHECK:   SectionData (
-@ CHECK:     0000: 00000000 00000000
-@ CHECK:   )
-@ CHECK: }
-
-@ CHECK: Section {
-@ CHECK:   Name: .rel.ARM.exidx.pr1.nontrivial
-@ CHECK:   Relocations [
-@ CHECK:     0x0 R_ARM_PREL31 .pr1.nontrivial 0x0
-@ CHECK:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr1 0x0
-@ CHECK:     0x4 R_ARM_PREL31 .ARM.extab.pr1.nontrivial 0x0
-@ CHECK:   ]
-@ CHECK: }
+@ CHECK-REL: Section {
+@ CHECK-REL:   Name: .rel.ARM.exidx.pr1.nontrivial
+@ CHECK-REL:   Relocations [
+@ CHECK-REL:     0x0 R_ARM_PREL31 .pr1.nontrivial 0x0
+@ CHECK-REL:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr1 0x0
+@ CHECK-REL:     0x4 R_ARM_PREL31 .ARM.extab.pr1.nontrivial 0x0
+@ CHECK-REL:   ]
+@ CHECK-REL: }
 
 	.section .pr2
 
@@ -142,28 +160,29 @@ pr2:
 	bx lr
 	.fnend
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.extab.pr2
-@ CHECK:   SectionData (
-@ CHECK:     0000: B0B00082 00000000
-@ CHECK:   )
-@ CHECK: }
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   SectionName: .ARM.exidx.pr2
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     FunctionAddress: 0x0
+@ CHECK-UNW:     ExceptionHandlingTable: .ARM.extab.pr2
+@ CHECK-UNW:     TableEntryOffset: 0x0
+@ CHECK-UNW:     Model: Compact
+@ CHECK-UNW:     PersonalityIndex: 2
+@ CHECK-UNW:     Opcodes [
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:     ]
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.exidx.pr2
-@ CHECK:   SectionData (
-@ CHECK:     0000: 00000000 00000000
-@ CHECK:   )
-@ CHECK: }
-
-@ CHECK: Section {
-@ CHECK:   Name: .rel.ARM.exidx.pr2
-@ CHECK:   Relocations [
-@ CHECK:     0x0 R_ARM_PREL31 .pr2 0x0
-@ CHECK:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr2 0x0
-@ CHECK:     0x4 R_ARM_PREL31 .ARM.extab.pr2 0x0
-@ CHECK:   ]
-@ CHECK: }
+@ CHECK-REL: Section {
+@ CHECK-REL:   Name: .rel.ARM.exidx.pr2
+@ CHECK-REL:   Relocations [
+@ CHECK-REL:     0x0 R_ARM_PREL31 .pr2 0x0
+@ CHECK-REL:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr2 0x0
+@ CHECK-REL:     0x4 R_ARM_PREL31 .ARM.extab.pr2 0x0
+@ CHECK-REL:   ]
+@ CHECK-REL: }
 
 	.section .pr2.nontrivial
 	.type pr2_nontrivial,%function
@@ -177,26 +196,27 @@ pr2_nontrivial:
 	bx lr
 	.fnend
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.extab.pr2.nontrivial
-@ CHECK:   SectionData (
-@ CHECK:     0000: B0030082 00000000
-@ CHECK:   )
-@ CHECK: }
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   SectionName: .ARM.exidx.pr2.nontrivial
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     FunctionAddress: 0x0
+@ CHECK-UNW:     ExceptionHandlingTable: .ARM.extab.pr2.nontrivial
+@ CHECK-UNW:     TableEntryOffset: 0x0
+@ CHECK-UNW:     Model: Compact
+@ CHECK-UNW:     PersonalityIndex: 2
+@ CHECK-UNW:     Opcodes [
+@ CHECK-UNW:       0x03      ; vsp = vsp + 16
+@ CHECK-UNW:       0xB0      ; finish
+@ CHECK-UNW:     ]
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
-@ CHECK: Section {
-@ CHECK:   Name: .ARM.exidx.pr2.nontrivial
-@ CHECK:   SectionData (
-@ CHECK:     0000: 00000000 00000000
-@ CHECK:   )
-@ CHECK: }
-
-@ CHECK: Section {
-@ CHECK:   Name: .rel.ARM.exidx.pr2.nontrivial
-@ CHECK:   Relocations [
-@ CHECK:     0x0 R_ARM_PREL31 .pr2.nontrivial 0x0
-@ CHECK:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr2 0x0
-@ CHECK:     0x4 R_ARM_PREL31 .ARM.extab.pr2.nontrivial 0x0
-@ CHECK:   ]
-@ CHECK: }
+@ CHECK-REL: Section {
+@ CHECK-REL:   Name: .rel.ARM.exidx.pr2.nontrivial
+@ CHECK-REL:   Relocations [
+@ CHECK-REL:     0x0 R_ARM_PREL31 .pr2.nontrivial 0x0
+@ CHECK-REL:     0x0 R_ARM_NONE __aeabi_unwind_cpp_pr2 0x0
+@ CHECK-REL:     0x4 R_ARM_PREL31 .ARM.extab.pr2.nontrivial 0x0
+@ CHECK-REL:   ]
+@ CHECK-REL: }
 

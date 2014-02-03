@@ -1,5 +1,7 @@
-@ RUN: llvm-mc %s -triple=armv7-unknown-linux-gnueabi -filetype=obj -o - \
-@ RUN:   | llvm-readobj -s -sd -sr | FileCheck %s
+@ RUN: llvm-mc -triple armv7-eabi -filetype obj %s | llvm-readobj -u \
+@ RUN:   | FileCheck %s -check-prefix CHECK-UNW
+@ RUN: llvm-mc -triple armv7-eabi -filetype obj %s | llvm-readobj -r \
+@ RUN:   | FileCheck %s -check-prefix CHECK-REL
 
 @ Check the .cantunwind directive
 
@@ -18,34 +20,18 @@ func1:
 	.cantunwind
 	.fnend
 
+@ CHECK-UNW: UnwindIndexTable {
+@ CHECK-UNW:   Entries [
+@ CHECK-UNW:     Entry {
+@ CHECK-UNW:       FunctionName: func1
+@ CHECK-UNW:       Model: CantUnwind
+@ CHECK-UNW:     }
+@ CHECK-UNW:   ]
+@ CHECK-UNW: }
 
+@ CHECK-REL: Relocations [
+@ CHECK-REL:   Section ({{[0-9]+}}) .rel.ARM.exidx {
+@ CHECK-REL:     0x0 R_ARM_PREL31 .text 0x0
+@ CHECK-REL:   }
+@ CHECK-REL: ]
 
-@-------------------------------------------------------------------------------
-@ Check .text section
-@-------------------------------------------------------------------------------
-@ CHECK: Sections [
-@ CHECK:   Section {
-@ CHECK:     Name: .text
-@ CHECK:     SectionData (
-@ CHECK:       0000: 1EFF2FE1                             |../.|
-@ CHECK:     )
-@ CHECK:   }
-
-
-@-------------------------------------------------------------------------------
-@ Check .ARM.exidx section
-@-------------------------------------------------------------------------------
-@ CHECK:   Section {
-@ CHECK:     Name: .ARM.exidx
-@-------------------------------------------------------------------------------
-@ The first word should be the offset to .text.
-@ The second word should be EXIDX_CANTUNWIND (01000000).
-@-------------------------------------------------------------------------------
-@ CHECK:     SectionData (
-@ CHECK:       0000: 00000000 01000000                    |........|
-@ CHECK:     )
-@ CHECK:   }
-@ CHECK: ]
-@ CHECK:     Relocations [
-@ CHECK:       0x0 R_ARM_PREL31 .text 0x0
-@ CHECK:     ]
